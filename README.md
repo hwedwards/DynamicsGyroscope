@@ -1,0 +1,2 @@
+# DynamicsGyroscope
+Unimelb Dynamics Assignment
