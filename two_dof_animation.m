@@ -1,13 +1,13 @@
 function two_dof_animation()
-    clear all
-    close all
+    clear all; 
+    close all; 
     clc
     %% DO I WANT TO RECORD THE VIDEO
     VIDEO = 1;
     
     %% SETUP THE PROBLEM
     X_init = [0;pi/3;10;0];                         % initial conditions
-    tspan = [0 8];                                 % start and finish times
+    tspan = [0 8];                                  % start and finish times
     options = odeset('RelTol',1e-7,'AbsTol',1e-7'); % solver options
     sol = ode45(@eom,tspan,X_init,options);         % SOLVE the eoms
 
