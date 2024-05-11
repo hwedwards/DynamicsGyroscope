@@ -222,155 +222,125 @@ alpha_dot0=0;
 beta0=0;
 beta_dot0=0;
 gamma0 = 0; 
-gamma_dot0 = 60; 
+gamma_dot0 = 10; 
 x_init = [alpha0; alpha_dot0; gamma0; gamma_dot0; beta0; beta_dot0];   % initial condition
 
 tspan=[0 7]; 
 EOM_Solved = ode45(eom,tspan,x_init,options);
 
 %% EVAULATE THE SOLUTION
-    dt = 0.03;                                  % set time step     
-    t = tspan(1):dt:tspan(2);                   % creat time vector
-    X = deval(EOM_Solved,t);                           % deval
+dt = 0.03;                                  % set time step     
+t = tspan(1):dt:tspan(2);                   % creat time vector
+X = deval(EOM_Solved,t);                           % deval
 
 
 %% PLOT THE STATES
-    plot(t,X)
-    xlabel('time')
-    ylabel('states')
-    h = legend('$\alpha$','$\dot{\alpha}$','$\gamma$','$\dot{\gamma}$','$\beta$','$\dot{\beta}$');
-    set(h,'Interpreter','latex')
+plot(t,X)
+xlabel('time')
+ylabel('states')
+h = legend('$\alpha$','$\dot{\alpha}$','$\gamma$','$\dot{\gamma}$','$\beta$','$\dot{\beta}$');
+set(h,'Interpreter','latex')
 
 
 %% ANIMATION
 %% CREATE CYLINDERS
-    VIDEO = 1; 
-    % first entry of cylinder is the radius, (you can have functions of the
-    % radius. Second entry is the number of points (the refinement). 
-    % Rotating Axle
-    [x1,y1,z1] = cylinder(r3_num,100);
-    %Specify the height by modifying the z1 entry
-    z1 = z1*L2_num;
-    % Gyroscope Axle
-    [x2,y2,z2] = cylinder(r3_num,20);
-    %Specify the height and then the position of the second cylinder.
-    z2 = z2*L_num +L_num;
-    % Gyroscope Counterweight
-    %[x3, y3, z3] = cylinder(r2_num, 20); 
-    %z3 = z3*t2_num;
-    % Big Rotating Disk
-    %[x4, y4, z4] = cylinder(r1_num, 20); 
-    %z4 = z4*t1_num; 
+VIDEO = 1; 
+%Gyroscope Axel - this is in frame 2
+[zg,yg,xg] = cylinder(r3_num,100);
+xg = xg*L_num - (L_num-d1_num); 
 
-    %% SETUP VIDEO IF REQUIRED
+
+%Gyroscope CounterWeight - this is in frame 2
+[zc, yc, xc] = cylinder(r2_num,100);
+xc = xc* t2_num - t2_num - d2_num;
+
+%Rotating Disk - this is in frame 3
+[yd, zd, xd] = cylinder(r1_num, 100);
+xd = xd*t1_num + d1_num; 
+
+%% SETUP VIDEO IF REQUIRED
+if VIDEO
+    fps = 1/dt;
+    MyVideo = VideoWriter('gyro_animation','MPEG-4');
+    MyVideo.FrameRate = fps;
+    open(MyVideo);
+end
+
+%% CREATE ANIMATION
+handle = figure;
+hold on % ; grid on
+for i = 1:length(t)
+    cla 
+
+    alpha = X(1,i);
+    gamma = X(3, i); 
+    beta = X(5, i); 
+   
+    % Positive rotation around z axis.
+    R01 = [cos(alpha) -sin(alpha) 0; sin(alpha) cos(alpha) 0; 0 0 1];
+    R10 = R01';
+
+    % Negative rotation around y axis.
+    R12 = [cos(beta) 0 -sin(beta); 0 1 0; sin(beta) 0 cos(beta)];
+    R21 = R12.';
+
+    % Positive rotation around x axis.
+    R23 = [1 0 0; 0 cos(gamma) -sin(gamma); 0 sin(gamma) cos(gamma)];
+    R32 = R23.';
+
+    R20 = R21 * R10;
+    R02 = R20.'; 
+    R30 = R32 * R20;
+    R03 = R30.'; 
+   
+    %Rotate the GyroScope axel
+
+    [xg, yg, zg] = rotation(xg, yg, zg, R02); 
+
+    %Rotate the Counterweight
+    [xc, yc, zc] = rotation(xc, yc, zc, R02); 
+
+    %Rotate the Rotating Disk
+    [xd, yd, zd] = rotation(xd, yd, zd, R02); 
+    %Surf colours the surface of a 3 dimensional plot
+    surf(xg, yg, zg, xg, 'EdgeColor', 'none'); 
+    surf(xc, yc, zc, xc, 'EdgeColor', 'none'); 
+    surf(xd, yd, zd, xd, 'EdgeColor', 'none');
+    
+    axis square
+    view(3)
+    axis(1*[-0.5 0.5 -0.5 0.5 -0.5 0.5])
+    xlabel('X')
+    ylabel('Y')
+    zlabel('Z')
     if VIDEO
-        fps = 1/dt;
-        MyVideo = VideoWriter('gyro_animation','MPEG-4');
-        MyVideo.FrameRate = fps;
-        open(MyVideo);
+        writeVideo(MyVideo,getframe(handle));
+    else
+        pause(dt)
     end
+end
 
-    %% CREATE ANIMATION
-    handle = figure;
-    hold on % ; grid on
-    for i = 1:length(t)
-        cla 
-
-        alpha = X(1,i);
-        gamma = X(3, i); 
-        beta = X(5, i); 
-        % I think I need to redeclare rotation matrices
-        % Positive rotation around z axis.
-        R01 = [cos(alpha) -sin(alpha) 0; sin(alpha) cos(alpha) 0; 0 0 1];
-        R10 = R01';
-
-        % Negative rotation around y axis.
-        R12 = [cos(beta) 0 -sin(beta); 0 1 0; sin(beta) 0 cos(beta)];
-        R21 = R12.';
-
-        % Positive rotation around x axis.
-        R23 = [1 0 0; 0 cos(gamma) -sin(gamma); 0 sin(gamma) cos(gamma)];
-        R32 = R23.';
-
-        R20 = R21 * R10;
-        R02 = R20.'; 
-        R30 = R32 * R20;
-        R03 = R30.'; 
-        %{
-        %Refine the position vectors. 
-        % From the origin to point A
-        rOA_0 = [0, 0, L2_num]; 
-        rAB_0 = rotation(d1_num, 0, 0, R02); 
-        rAC_0 = rotation(-d2_num, 0, 0, R02); 
-        % From the origin to the inner face of rotating disk
-        rOB_0 = rOA_0 + rAB_0; 
-        % From the origin to the inner face of counter weight
-        rOC_0 = rOA_0 + rAC_0; 
-        %}
-        % Rotating Axle
-        [x1_rotated,y1_rotated,z1_rotated] = rotation(x1,y1,z1,R01);
-       
-        % Gyroscope Axle
-        [x2_rotated,y2_rotated,z2_rotated] = rotation(x2,y2,z2,R02);
-        %{
-        x2_rotated = x2_rotated + rOA_0(1); 
-        y2_rotated = y2_rotated + rOA_0(2);
-        z2_rotated = z2_rotated + rOA_0(3); 
-
-        %}
-        % Gyroscope CounterWeight
-        %[x3_rotated, y3_rotated, z3_rotated] = rotation(x3, y3, z3, R02);
-        %{
-        x3_rotated = x3_rotated + rOC_0(1);
-        y3_rotated = y3_rotated + rOC_0(2);
-        z3_rotated = z3_rotated + rOC_0(3);
-        %}
-        % Rotating Disk
-       % [x4_rotated, y4_rotated, z4_rotated] = rotation(x4, y4, z4, R03);
-        %{
-        x4_rotated = x4_rotated + rOB_0(1);
-        y4_rotated = y4_rotated + rOB_0(2);
-        z4_rotated = z4_rotated + rOB_0(3);
-        %}
-        %Surf colours the surface of a 3 dimensional plot
-        surf(x1_rotated,y1_rotated,z1_rotated, x1)
-        surf(x2_rotated,y2_rotated,z2_rotated,x2,'EdgeColor','none')
-        %surf(x3_rotated,y3_rotated,z3_rotated,x3,'EdgeColor','none')
-        %surf(x4_rotated,y4_rotated,z4_rotated,x4,'EdgeColor','none')
-        axis square
-        view(3)
-        axis(1*[-1 1 -1 1 -1 1])
-        xlabel('X')
-        ylabel('Y')
-        zlabel('Z')
-        if VIDEO
-            writeVideo(MyVideo,getframe(handle));
-        else
-            pause(dt)
-        end
-    end
-
-    if VIDEO
-    close(MyVideo)
-    end
+if VIDEO
+close(MyVideo)
+end
 function [Xf,Yf,Zf]=rotation(Xi,Yi,Zi,R)
 
-    I=size(Xi,1);
-    J=size(Xi,2);
+I=size(Xi,1);
+J=size(Xi,2);
 
-    Xf=zeros(I,J);
-    Yf=zeros(I,J);
-    Zf=zeros(I,J);
+Xf=zeros(I,J);
+Yf=zeros(I,J);
+Zf=zeros(I,J);
 
-    for ii=1:I
-        for jj=1:J
-            vector=[Xi(ii,jj);Yi(ii,jj);Zi(ii,jj)];
-            vector=R*vector;
-                Xf(ii,jj)=vector(1);
-                Yf(ii,jj)=vector(2);
-                Zf(ii,jj)=vector(3);
-        end
+for ii=1:I
+    for jj=1:J
+        vector=[Xi(ii,jj);Yi(ii,jj);Zi(ii,jj)];
+        vector=R*vector;
+            Xf(ii,jj)=vector(1);
+            Yf(ii,jj)=vector(2);
+            Zf(ii,jj)=vector(3);
     end
+end
 
 end
 
