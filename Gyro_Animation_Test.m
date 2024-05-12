@@ -144,7 +144,7 @@ MG2_2 = h_Axle_C2_dot + R23*MG3_3 - cross(rAC2_2, F2_2) + cross(rAD1_2, R23*F3_3
 Fg1_0 = [0; 0; m4*9.81];
 F1_1 = p_rotating_C3_dot - R10*Fg1_0 + R12*F2_2;
 
-MG1_2 = h_rotating_C3_dot + R12*MG2_2 - cross(rOC3_1, F1_1) + cross(rAO_1, F2_2);
+MG1_1 = h_rotating_C3_dot + R12*MG2_2 - cross(rOC3_1, F1_1) + cross(rAO_1, F2_2);
 
 
 syms F3x F3y F3z tau_3 M3y M3z
@@ -163,7 +163,7 @@ tau_2
 syms F1x F1y F1z tau_1 M1x M1y
 [F1x,F1y,F1z]=solve([F1x;F1y;F1z]==F1_1, [F1x,F1y,F1z]);
 
-[M1x,M1y,tau_1]=solve([M1x;M1y;tau_1]==MG1_2,[M1x,M1y,tau_1]); 
+[M1x,M1y,tau_1]=solve([M1x;M1y;tau_1]==MG1_1,[M1x,M1y,tau_1]); 
 tau_1
 
 tau1 = 0; 
@@ -185,14 +185,14 @@ X_ddotNew = simplify(X_ddotNew)
 
 L_num =  0.48; %- length of gyroscope axle
 L2_num = 0.195; %- length of rotating axle
-d1_num = 0.128 %- length from A to start of big disc (B)
+d1_num = 0.128; %- length from A to start of big disc (B)
 d2_num = 0.2175;  %- length from A to start of counterweight
 t1_num = 0.0221;  %- thickness of disc
 t2_num = 0.0313; %- thickness of counterweight
 m1_num = 1.747;  %- mass of large disc
 m2_num = 0.9; % - mass of counterweight
-m3_num = 0; % - mass of axle
-m4_num = 0; %- mass of rotating axle
+m3_num = 0.15; % - mass of axle
+m4_num = 0.15; %- mass of rotating axle
 r1_num = 0.254/2;  %- radius of big disc
 r2_num = 0.07/2;% - radius of counterweight
 r3_num = 12.1/2/1000;  %- radius of gyroscope axle
@@ -218,14 +218,14 @@ eom = matlabFunction(X_dot,'Vars',{'t','Y'})
 
 options = odeset('RelTol',1e-7,'AbsTol',1e-7'); % solver options
 alpha0=0;
-alpha_dot0=0;
-beta0=0;
-beta_dot0=0;
+alpha_dot0=-0.8;
+beta0=0.122;
+beta_dot0=-0.5;
 gamma0 = 0; 
-gamma_dot0 = 10; 
-x_init = [alpha0; alpha_dot0; gamma0; gamma_dot0; beta0; beta_dot0];   % initial condition
+gamma_dot0 = 34.27; 
+x_init = [beta0; beta_dot0; alpha0; alpha_dot0; gamma0; gamma_dot0];   % initial condition
 
-tspan=[0 7]; 
+tspan=[0 10]; 
 EOM_Solved = ode45(eom,tspan,x_init,options);
 
 %% EVAULATE THE SOLUTION
@@ -235,11 +235,32 @@ X = deval(EOM_Solved,t);                           % deval
 
 
 %% PLOT THE STATES
-plot(t,X)
-xlabel('time')
-ylabel('states')
-h = legend('$\alpha$','$\dot{\alpha}$','$\gamma$','$\dot{\gamma}$','$\beta$','$\dot{\beta}$');
-set(h,'Interpreter','latex')
+% Plot for alpha and alpha_dot
+subplot(3, 2, 1);
+plot(t, X(3,:), 'b', t, X(4,:), 'r');
+xlabel('Time');
+ylabel('Alpha States');
+legend('\alpha', '\dot{\alpha}');
+title('Alpha States');
+
+% Plot for gamma and gamma_dot
+subplot(3, 2, 3);
+plot(t, X(5,:), 'b', t, X(6,:), 'r');
+xlabel('Time');
+ylabel('Gamma States');
+legend('\gamma', '\dot{\gamma}');
+title('Gamma States');
+
+% Plot for beta and beta_dot
+subplot(3, 2, 5);
+plot(t, X(1,:), 'b', t, X(2,:), 'r');
+xlabel('Time');
+ylabel('Beta States');
+legend('\beta', '\dot{\beta}');
+title('Beta States');
+
+% Overall plot settings
+sgtitle('State Variables over Time');
 
 
 %% ANIMATION
@@ -265,7 +286,7 @@ if VIDEO
     MyVideo.FrameRate = fps;
     open(MyVideo);
 end
-
+%{
 %% CREATE ANIMATION
 handle = figure;
 hold on % ; grid on
@@ -344,4 +365,50 @@ end
 
 end
 
-
+%}
+%{
+function xdot = eom(t, x)
+    %{
+    syms alpha_new beta_new gamma_new alpha_dot beta_dot gamma_dot 
+    sym_param = [alpha_dot alpha_new beta_dot beta_new gamma_dot gamma_new];
+    num_param = [x(4) x(1) x(5) x(2) x(6) x(5)];
+    %}
+    alpha_new = x(1); 
+    beta_new = x(5); 
+    gamma_new = x(3); 
+    alpha_dot = x(2); 
+    beta_dot = x(6); 
+    gamma_dot = x(4); 
+    % Load data and handle potential errors
+    try
+        alpha_ddot = -(beta_dot*((760788801*gamma_dot*cos(beta_new))/5000000000 - (589361080059*alpha_dot*sin(2*beta_new))/1000000000000))/((665439960159*cos(beta_new)^2)/1000000000000 + 11907/2000000);
+        %alpha_ddot = subs(alpha_ddot, sym_param, num_param); 
+        alpha_ddot = double(alpha_ddot);
+        beta_ddot = (10116922404000*cos(beta_new))/74599273351 - (57031355551*alpha_dot^2*sin(2*beta_new))/149198546702 + (16906417800*alpha_dot*gamma_dot*cos(beta_new))/74599273351;
+        %beta_ddot = subs(beta_ddot, sym_param, num_param);
+        beta_ddot = double(beta_ddot); 
+        gamma_ddot = (beta_dot*cos(beta_new)*((760788801*gamma_dot*sin(beta_new))/5000000000 - (592337830059*alpha_dot)/500000000000 + (513282199959*alpha_dot*cos(beta_new)^2)/1000000000000))/((665439960159*cos(beta_new)^2)/1000000000000 + 11907/2000000); 
+        %gamma_ddot = subs(gamma_ddot, sym_param, num_param);
+        gamma_ddot = double(gamma_ddot); 
+    catch
+        error('Error loading or processing data from file.');
+    end
+    
+    % Display loaded data for debugging
+    disp('Loaded acceleration data:');
+    disp(alpha_ddot);
+    disp(beta_ddot);
+    disp(gamma_ddot);
+    % These are still being recorded as sym expressions
+    % To fix, I gotta use subs! And sub the values of alpha_new, 
+    % beta_new, gamma_new, and there derivatives for X(1), X(2)
+    % X(3) X(4) X(5) X(6) the above I thought I was doing is but not really
+    % Assign derivatives to xdot
+    xdot = [alpha_dot;
+            beta_dot;
+            gamma_dot;
+            alpha_ddot;
+            beta_ddot;
+            gamma_ddot];
+end
+%}
