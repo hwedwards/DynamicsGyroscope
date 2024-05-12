@@ -22,6 +22,7 @@ syms m1 m2 m3 m4
 % r2 - radius of small disc
 % r3 - radius of gyroscope axle
 % r4 - radius of rotating axle
+
 % Positive rotation around z axis.
 R01 = [cos(alpha) -sin(alpha) 0; sin(alpha) cos(alpha) 0; 0 0 1];
 R10 = R01';
@@ -39,8 +40,6 @@ R02 = R20.';
 R30 = R32 * R20;
 R03 = R30.'; 
 
- % not functions of time, for later
-
 w1_1 = [0; 0; diff(alpha, t)];
 
 w21_2 = [0; -diff(beta, t); 0];
@@ -52,7 +51,7 @@ w3_3 = w32_3 + R32*w21_2 + R32*R21*w1_1;
 rOC3_1 = [0; 0; L2/2]; % Base to COM of rotating axle
 rAO_1 = [0; 0; -L2/2]; % A to COM of rotating axle
 
-rACaxle_2 = [-(L/2 - d1); 0; 0]; % COM of gyroscope axle
+rACaxle_2 = [-(L/2 - d1); 0; 0]; % A to COM of gyroscope axle
 rAD1_2 = [d1 + t1/2; 0; 0]; % A to COM of big disc
 rAD2_2 = [-(d2 + t2/2); 0; 0]; % A to COM of counterweight
 rAC2_2 = (m3*rACaxle_2 + m2*rAD2_2)/(m3 + m2); % combined COM of axle + counterweight
@@ -223,13 +222,13 @@ beta0=0.122;
 beta_dot0=-0.5;
 gamma0 = 0; 
 gamma_dot0 = 34.27; 
-x_init = [beta0; beta_dot0; alpha0; alpha_dot0; gamma0; gamma_dot0];   % initial condition
+x_init = [alpha0; alpha_dot0; beta0; beta_dot0;  gamma0; gamma_dot0];   % initial condition
 
-tspan=[0 10]; 
+tspan=[0 20]; 
 EOM_Solved = ode45(eom,tspan,x_init,options);
 
 %% EVAULATE THE SOLUTION
-dt = 0.03;                                  % set time step     
+dt = 0.05;                                  % set time step     
 t = tspan(1):dt:tspan(2);                   % creat time vector
 X = deval(EOM_Solved,t);                           % deval
 
@@ -237,7 +236,7 @@ X = deval(EOM_Solved,t);                           % deval
 %% PLOT THE STATES
 % Plot for alpha and alpha_dot
 subplot(3, 2, 1);
-plot(t, X(3,:), 'b', t, X(4,:), 'r');
+plot(t, X(1,:), 'b', t, X(2,:), 'r');
 xlabel('Time');
 ylabel('Alpha States');
 legend('\alpha', '\dot{\alpha}');
@@ -253,7 +252,7 @@ title('Gamma States');
 
 % Plot for beta and beta_dot
 subplot(3, 2, 5);
-plot(t, X(1,:), 'b', t, X(2,:), 'r');
+plot(t, X(3,:), 'b', t, X(4,:), 'r');
 xlabel('Time');
 ylabel('Beta States');
 legend('\beta', '\dot{\beta}');
@@ -286,16 +285,16 @@ if VIDEO
     MyVideo.FrameRate = fps;
     open(MyVideo);
 end
-%{
+
 %% CREATE ANIMATION
 handle = figure;
 hold on % ; grid on
 for i = 1:length(t)
     cla 
 
-    alpha = X(1,i);
-    gamma = X(3, i); 
-    beta = X(5, i); 
+    alpha = X(1,i)/40;
+    beta = X(3, i)/500; 
+    gamma = X(5, i); 
    
     % Positive rotation around z axis.
     R01 = [cos(alpha) -sin(alpha) 0; sin(alpha) cos(alpha) 0; 0 0 1];
