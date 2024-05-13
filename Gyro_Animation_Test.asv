@@ -144,7 +144,7 @@ MG2_2 = h_Axle_C2_dot + R23*MG3_3 - cross(rAC2_2, F2_2) + cross(rAD1_2, R23*F3_3
 Fg1_0 = [0; 0; m4*9.81];
 F1_1 = p_rotating_C3_dot - R10*Fg1_0 + R12*F2_2;
 
-MG1_2 = h_rotating_C3_dot + R12*MG2_2 - cross(rOC3_1, F1_1) + cross(rAO_1, F2_2);
+MG1_1 = h_rotating_C3_dot + R12*MG2_2 - cross(rOC3_1, F1_1) + cross(rAO_1, F2_2);
 
 
 syms F3x F3y F3z tau_3 M3y M3z
@@ -163,7 +163,7 @@ tau_2
 syms F1x F1y F1z tau_1 M1x M1y
 [F1x,F1y,F1z]=solve([F1x;F1y;F1z]==F1_1, [F1x,F1y,F1z]);
 
-[M1x,M1y,tau_1]=solve([M1x;M1y;tau_1]==MG1_2,[M1x,M1y,tau_1]); 
+[M1x,M1y,tau_1]=solve([M1x;M1y;tau_1]==MG1_1,[M1x,M1y,tau_1]); 
 tau_1
 
 tau1 = 0; 
@@ -191,8 +191,8 @@ t1_num = 0.0221;  %- thickness of disc
 t2_num = 0.0313; %- thickness of counterweight
 m1_num = 1.747;  %- mass of large disc
 m2_num = 0.9; % - mass of counterweight
-m3_num = 0.4; % - mass of axle
-m4_num = 0.4; %- mass of rotating axle
+m3_num = 0.15; % - mass of axle
+m4_num = 0.15; %- mass of rotating axle
 r1_num = 0.254/2;  %- radius of big disc
 r2_num = 0.07/2;% - radius of counterweight
 r3_num = 12.1/2/1000;  %- radius of gyroscope axle
@@ -214,6 +214,7 @@ tau_3=subs(tau_3, sym_measurements, numerical_measurements);
 
 [X_dot,S] = odeToVectorField(tau_1, tau_2, tau_3);
 S
+
 eom = matlabFunction(X_dot,'Vars',{'t','Y'})
 
 options = odeset('RelTol',1e-7,'AbsTol',1e-7'); % solver options
@@ -222,10 +223,10 @@ alpha_dot0=-0.8;
 beta0=0.122;
 beta_dot0=-0.5;
 gamma0 = 0; 
-gamma_dot0 = 34.27; 
-x_init = [beta0; beta_dot0; alpha0; alpha_dot0; gamma0; gamma_dot0];   % initial condition
+gamma_dot0 = 60.27; 
+x_init = [beta0; beta_dot0; alpha0; alpha_dot0; gamma0; gamma_dot0;];   % initial condition
 
-tspan=[0 7]; 
+tspan=[0 10]; 
 EOM_Solved = ode45(eom,tspan,x_init,options);
 
 %% EVAULATE THE SOLUTION
@@ -233,34 +234,16 @@ dt = 0.03;                                  % set time step
 t = tspan(1):dt:tspan(2);                   % creat time vector
 X = deval(EOM_Solved,t);                           % deval
 
+X(3,:) = X(3,:)/10; 
 
 %% PLOT THE STATES
-% Plot for alpha and alpha_dot
-subplot(3, 2, 1);
-plot(t, X(1,:), 'b', t, X(2,:), 'r');
-xlabel('Time');
-ylabel('Alpha States');
-legend('\alpha', '\dot{\alpha}');
-title('Alpha States');
+%% PLOT THE STATES
+    plot(t,X)
+    xlabel('time')
+    ylabel('states')
+    h = legend('$\alpha$','$\dot{\alpha}$','$\gamma$','$\dot{\gamma}$','$\beta$','$\dot{\beta}$');
+    set(h,'Interpreter','latex')
 
-% Plot for gamma and gamma_dot
-subplot(3, 2, 3);
-plot(t, X(5,:), 'b', t, X(6,:), 'r');
-xlabel('Time');
-ylabel('Gamma States');
-legend('\gamma', '\dot{\gamma}');
-title('Gamma States');
-
-% Plot for beta and beta_dot
-subplot(3, 2, 5);
-plot(t, X(1,:), 'b', t, X(6,:), 'r');
-xlabel('Time');
-ylabel('Beta States');
-legend('\beta', '\dot{\beta}');
-title('Beta States');
-
-% Overall plot settings
-sgtitle('State Variables over Time');
 
 
 %% ANIMATION
@@ -286,16 +269,15 @@ if VIDEO
     MyVideo.FrameRate = fps;
     open(MyVideo);
 end
-%{
+
 %% CREATE ANIMATION
 handle = figure;
 hold on % ; grid on
-for i = 1:length(t)
+for i = length(t)
     cla 
-
-    alpha = X(1,i);
-    gamma = X(3, i); 
-    beta = X(5, i); 
+    alpha = EOM_Solved(i, 3);
+    gamma = EOM_Solved(i, 5); 
+    beta = EOM_Solved(i, 1); 
    
     % Positive rotation around z axis.
     R01 = [cos(alpha) -sin(alpha) 0; sin(alpha) cos(alpha) 0; 0 0 1];
@@ -365,7 +347,7 @@ end
 
 end
 
-%}
+
 %{
 function xdot = eom(t, x)
     %{

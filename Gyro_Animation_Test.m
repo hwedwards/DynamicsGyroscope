@@ -214,6 +214,7 @@ tau_3=subs(tau_3, sym_measurements, numerical_measurements);
 
 [X_dot,S] = odeToVectorField(tau_1, tau_2, tau_3);
 S
+
 eom = matlabFunction(X_dot,'Vars',{'t','Y'})
 
 options = odeset('RelTol',1e-7,'AbsTol',1e-7'); % solver options
@@ -222,8 +223,8 @@ alpha_dot0=-0.8;
 beta0=0.122;
 beta_dot0=-0.5;
 gamma0 = 0; 
-gamma_dot0 = 34.27; 
-x_init = [beta0; beta_dot0; alpha0; alpha_dot0; gamma0; gamma_dot0];   % initial condition
+gamma_dot0 = 60.27; 
+x_init = [beta0; beta_dot0; alpha0; alpha_dot0; gamma0; gamma_dot0;];   % initial condition
 
 tspan=[0 10]; 
 EOM_Solved = ode45(eom,tspan,x_init,options);
@@ -233,35 +234,15 @@ dt = 0.03;                                  % set time step
 t = tspan(1):dt:tspan(2);                   % creat time vector
 X = deval(EOM_Solved,t);                           % deval
 
+X(3,:) = X(3,:)/10; 
 
 %% PLOT THE STATES
-% Plot for alpha and alpha_dot
-subplot(3, 2, 1);
-plot(t, X(3,:), 'b', t, X(4,:), 'r');
-xlabel('Time');
-ylabel('Alpha States');
-legend('\alpha', '\dot{\alpha}');
-title('Alpha States');
-
-% Plot for gamma and gamma_dot
-subplot(3, 2, 3);
-plot(t, X(5,:), 'b', t, X(6,:), 'r');
-xlabel('Time');
-ylabel('Gamma States');
-legend('\gamma', '\dot{\gamma}');
-title('Gamma States');
-
-% Plot for beta and beta_dot
-subplot(3, 2, 5);
-plot(t, X(1,:), 'b', t, X(2,:), 'r');
-xlabel('Time');
-ylabel('Beta States');
-legend('\beta', '\dot{\beta}');
-title('Beta States');
-
-% Overall plot settings
-sgtitle('State Variables over Time');
-
+%% PLOT THE STATES
+    plot(t,X)
+    xlabel('time')
+    ylabel('states')
+    h = legend('$\alpha$','$\dot{\alpha}$','$\gamma$','$\dot{\gamma}$','$\beta$','$\dot{\beta}$');
+    set(h,'Interpreter','latex')
 
 %% ANIMATION
 %% CREATE CYLINDERS
@@ -286,16 +267,15 @@ if VIDEO
     MyVideo.FrameRate = fps;
     open(MyVideo);
 end
-%{
+
 %% CREATE ANIMATION
 handle = figure;
 hold on % ; grid on
-for i = 1:length(t)
+for i = length(t)
     cla 
-
-    alpha = X(1,i);
-    gamma = X(3, i); 
-    beta = X(5, i); 
+    alpha = X(3,i);
+    gamma = X(5, i); 
+    beta = X(1, i); 
    
     % Positive rotation around z axis.
     R01 = [cos(alpha) -sin(alpha) 0; sin(alpha) cos(alpha) 0; 0 0 1];
@@ -342,7 +322,7 @@ for i = 1:length(t)
 end
 
 if VIDEO
-close(MyVideo)
+    close(MyVideo)
 end
 function [Xf,Yf,Zf]=rotation(Xi,Yi,Zi,R)
 
@@ -365,7 +345,7 @@ end
 
 end
 
-%}
+
 %{
 function xdot = eom(t, x)
     %{
