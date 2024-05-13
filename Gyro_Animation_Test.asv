@@ -169,9 +169,9 @@ tau_1
 tau1 = 0; 
 tau2 = 0; 
 tau3 = 0; 
-tau_1 = tau1-tau_1 ==0; 
-tau_2 = tau2 -tau_2 ==0; 
-tau_3 = tau3 - tau_3 == 0; 
+tau_1 = tau_1 ==0; 
+tau_2 = tau_2 ==0; 
+tau_3 = tau_3 == 0; 
 eqns= [tau_1, tau_2, tau_3]; 
 
 syms alpha_new beta_new gamma_new alpha_dot alpha_ddot beta_dot beta_ddot gamma_dot gamma_ddot 
@@ -234,33 +234,72 @@ dt = 0.03;                                  % set time step
 t = tspan(1):dt:tspan(2);                   % creat time vector
 X = deval(EOM_Solved,t);                           % deval
 
-X(3,:) = X(3,:)/10; 
-
+X(1,:) = X(1,:); 
+X(2,:) = X(2,:); 
+X(3,:) = X(3,:); 
+X(4,:) = X(4,:); 
+X(5,:) = X(5,:); 
+X(6,:) = X(6,:)/10; 
 %% PLOT THE STATES
 %% PLOT THE STATES
-    plot(t,X)
-    xlabel('time')
-    ylabel('states')
-    h = legend('$\alpha$','$\dot{\alpha}$','$\gamma$','$\dot{\gamma}$','$\beta$','$\dot{\beta}$');
-    set(h,'Interpreter','latex')
+    % Create a new figure
+figure;
 
+% Subplot 1: Alpha and AlphaDot vs Time
+subplot(3, 1, 1);
+hold on; 
+plot(t, X(3,:), 'b', t, X(4,:), 'r');
+xlabel('Time (s)');
+ylabel('Alpha in Rad and Rad/s');
+legend('Alpha', 'AlphaDot');
+title('Alpha and AlphaDot vs Time');
+hold off; 
+% Subplot 2: Beta and BetaDot vs Time
+subplot(3, 1, 2);
+hold on; 
+plot(t, X(1,:), 'b', t, X(2,:), 'r');
+xlabel('Time (s)');
+ylabel('Beta in Rad and Rad/s');
+legend('Beta', 'BetaDot');
+title('Beta and BetaDot vs Time');
+hold off; 
+% Subplot 3: Gamma and GammaDot vs Time
+subplot(3, 1, 3);
+hold on; 
+plot(t, X(5,:), 'b', t, X(6,:), 'r');
+xlabel('Time (s)');
+ylabel('Gamma in Rad and Rad/s');
+legend('Gamma', 'GammaDot');
+title('Gamma and GammaDot vs Time');
+hold off; 
+% Adjust subplot spacing
+spacing = 0.05;
+position = get(gca, 'Position');
+position(1) = position(1) - spacing;
+position(3) = position(3) + spacing;
+set(gca, 'Position', position);
 
+% Enhance figure layout
+sgtitle('Graph Subplot of Alpha, AlphaDot, Beta, BetaDot, Gamma, GammaDot vs Time');
 
 %% ANIMATION
 %% CREATE CYLINDERS
 VIDEO = 1; 
 %Gyroscope Axel - this is in frame 2
-[zg,yg,xg] = cylinder(r3_num,100);
+[yg,zg,xg] = cylinder(r3_num,100);
 xg = xg*L_num - (L_num-d1_num); 
 
 
 %Gyroscope CounterWeight - this is in frame 2
-[zc, yc, xc] = cylinder(r2_num,100);
+[yc, zc, xc] = cylinder(r2_num,100);
 xc = xc* t2_num - t2_num - d2_num;
 
 %Rotating Disk - this is in frame 3
 [yd, zd, xd] = cylinder(r1_num, 100);
 xd = xd*t1_num + d1_num; 
+
+[x_stand, y_stand, z_stand] = cylinder(r3_num); 
+z_stand = z_stand *L2_num; 
 
 %% SETUP VIDEO IF REQUIRED
 if VIDEO
@@ -273,11 +312,11 @@ end
 %% CREATE ANIMATION
 handle = figure;
 hold on % ; grid on
-for i = length(t)
+for i = 1:length(t)
     cla 
-    alpha = EOM_Solved(i, 3);
-    gamma = EOM_Solved(i, 5); 
-    beta = EOM_Solved(i, 1); 
+    alpha = X(3,i);
+    gamma = X(5, i); 
+    beta = X(1, i); 
    
     % Positive rotation around z axis.
     R01 = [cos(alpha) -sin(alpha) 0; sin(alpha) cos(alpha) 0; 0 0 1];
@@ -293,22 +332,32 @@ for i = length(t)
 
     R20 = R21 * R10;
     R02 = R20.'; 
-    R30 = R32 * R20;
+    R30 = R32 * R21*R10;
     R03 = R30.'; 
    
     %Rotate the GyroScope axel
 
-    [xg, yg, zg] = rotation(xg, yg, zg, R02); 
+    [xg_rotated, yg_rotated, zg_rotated] = rotation(xg, yg, zg, R02); 
 
     %Rotate the Counterweight
-    [xc, yc, zc] = rotation(xc, yc, zc, R02); 
+    [xc_rotated, yc_rotated, zc_rotated] = rotation(xc, yc, zc, R02); 
 
     %Rotate the Rotating Disk
-    [xd, yd, zd] = rotation(xd, yd, zd, R02); 
+    [xd_rotated, yd_rotated, zd_rotated] = rotation(xd, yd, zd, R02); 
+
+    %Rotate the Stand
+    [x_stand_rotated, y_stand_rotated, z_stand_rotated] = rotation(x_stand, y_stand, z_stand, R01); 
+
+    % Adjust Heights
+
+    zg_rotated = zg_rotated + L2_num; 
+    zc_rotated = zc_rotated + L2_num; 
+    zd_rotated = zd_rotated + L2_num; 
     %Surf colours the surface of a 3 dimensional plot
-    surf(xg, yg, zg, xg, 'EdgeColor', 'none'); 
-    surf(xc, yc, zc, xc, 'EdgeColor', 'none'); 
-    surf(xd, yd, zd, xd, 'EdgeColor', 'none');
+    surf(xg_rotated, yg_rotated, zg_rotated, yg_rotated, 'EdgeColor', 'none'); 
+    surf(xc_rotated, yc_rotated, zc_rotated, yc_rotated, 'EdgeColor', 'none'); 
+    surf(xd_rotated, yd_rotated, zd_rotated, yd_rotated, 'EdgeColor', 'none');
+    surf(x_stand_rotated,y_stand_rotated, z_stand_rotated, y_stand_rotated); 
     
     axis square
     view(3)
@@ -324,7 +373,7 @@ for i = length(t)
 end
 
 if VIDEO
-close(MyVideo)
+    close(MyVideo)
 end
 function [Xf,Yf,Zf]=rotation(Xi,Yi,Zi,R)
 
